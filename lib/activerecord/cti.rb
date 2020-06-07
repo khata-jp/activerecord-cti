@@ -5,98 +5,104 @@ module ActiveRecord
     module BaseClass
       extend ActiveSupport::Concern
 
+      included do
+        self.abstract_class = true
+      end
+
       class_methods do
-
-        def inherited(obj)
+        def inherited(subclass)
           super
-          puts "inherited"
-          puts self
-          puts obj
-          #if obj.is_cti_base_class?
-            class << obj
-              include ActiveRecord::Cti::SubClass
-            end
-
-            obj.class_eval do
-              def save(*args, &block)
-                save_superclass(*args, &block)
-                save_subclass({
-                  "#{self.class.superclass.to_s.foreign_key}": id
-                }, &block)
-              rescue ActiveRecord::RecordInvalid
-                false
-              end
-
-              private
-              def save_superclass(*args, &block)
-                create_or_update(*args, &block)
-              end
-
-              def save_subclass(*args, &block)
-                table_name = self.class.to_s.underscore.pluralize
-                Class.new(ApplicationRecord) do
-                  self.table_name = table_name
-                end.new(*args, &block).save
-              end
-            end
-
-            #class << obj.connection.schema_cache
-            #  include ActiveRecord::Cti::ConnectionAdapters::SchemaCache
-            #end
-          #else
-          #  puts "is not cti base class"
-          #end
+          subclass.include(ActiveRecord::Cti::SubClass)
         end
-
       end
     end
 
     module SubClass
+      extend ActiveSupport::Concern
 
-      # Generates all the attribute related methods for columns in the database
-      # accessors, mutators and query methods.
-      def define_attribute_methods # :nodoc:
-        return false if @attribute_methods_generated
-        # Use a mutex; we don't want two threads simultaneously trying to define
-        # attribute methods.
-        generated_attribute_methods.synchronize do
+      class_methods do
+        def superclass_for_write
+          table_name = superclass_table_name
+          @superclass_for_write || @superclass_for_write = Class.new(ActiveRecord::Base) do
+            self.table_name = table_name
+          end
+        end
+
+        def subclass_for_write
+          table_name = subclass_table_name
+          @subclass_for_write || @subclass_for_write = Class.new(ActiveRecord::Base) do
+            self.table_name = table_name
+          end
+        end
+
+        # Generates all the attribute related methods for columns in the database
+        # accessors, mutators and query methods.
+        def define_attribute_methods # :nodoc:
           return false if @attribute_methods_generated
-          @attribute_methods_generated = true
+          # Use a mutex; we don't want two threads simultaneously trying to define
+          # attribute methods.
+          generated_attribute_methods.synchronize do
+            return false if @attribute_methods_generated
+            @attribute_methods_generated = true
+          end
         end
-      end
-        
-      private
 
-      def load_schema!
-        @columns_hash = superclass_columns_hash.merge(subclass_columns_hash)
-        @columns_hash.each do |name, column|
-          define_attribute(
-            name,
-            connection.lookup_cast_type_from_column(column),
-            default: column.default,
-            user_provided_default: false
-          )
+        private
+          def superclass_table_name
+            superclass.to_s.tableize
+          end
+
+          def subclass_table_name
+            self.to_s.tableize
+          end
+
+          def load_schema!
+            @columns_hash = superclass_columns_hash.merge(subclass_columns_hash)
+            @columns_hash.each do |name, column|
+              define_attribute(
+                name,
+                connection.lookup_cast_type_from_column(column),
+                default: column.default,
+                user_provided_default: false
+              )
+            end
+          end
+
+          def superclass_columns_hash
+            connection.schema_cache.columns_hash(superclass.to_s.tableize).except(*superclass_ignored_columns)
+          end
+
+          def subclass_columns_hash
+            connection.schema_cache.columns_hash(self.to_s.tableize).except(*subclass_ignored_columns)
+          end
+
+          def superclass_ignored_columns
+            ["created_at", "updated_at"]
+          end
+
+          def subclass_ignored_columns
+            [superclass.to_s.foreign_key]
+          end
+      end #end of class_methods
+
+      def save(*args, &block)
+        superclass_instance_for_write = self.class.superclass_for_write.new(
+          attributes.slice(*self.class.superclass_for_write.column_names), &block
+        )
+        subclass_instance_for_write = self.class.subclass_for_write.new(
+          attributes.except(*self.class.superclass_for_write.column_names),
+          &block
+        )
+        ActiveRecord::Base.transaction do
+          superclass_instance_for_write.save
+          subclass_instance_for_write.send("#{self.class.superclass.to_s.foreign_key}=", superclass_instance_for_write.id)
+          subclass_instance_for_write.save
         end
-      end
 
-      def superclass_columns_hash
-        base_class? ? {} : connection.schema_cache.columns_hash(superclass.to_s.underscore.pluralize).except(*superclass_ignored_columns)
+        superclass_instance_for_write.id.present? and subclass_instance_for_write.id.present?
+      rescue ActiveRecord::RecordInvalid
+        false
       end
-
-      def subclass_columns_hash
-        connection.schema_cache.columns_hash(self.to_s.underscore.pluralize).except(*subclass_ignored_columns)
-      end
-
-      def superclass_ignored_columns
-        ["created_at", "updated_at"]
-      end
-
-      def subclass_ignored_columns
-        [superclass.to_s.foreign_key]
-      end
-
     end
-
   end
-
 end
