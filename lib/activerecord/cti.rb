@@ -13,6 +13,7 @@ module ActiveRecord
         def inherited(subclass)
           super
           subclass.include(ActiveRecord::Cti::SubClass)
+          subclass.send(:default_scope, lambda{ joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{superclass_foreign_key} = #{superclass_table_name}.id").select(default_select_columns) })
         end
       end
     end
@@ -47,15 +48,31 @@ module ActiveRecord
           end
         end
 
+        def superclass_name
+          superclass.to_s
+        end
+
+        def superclass_table_name
+          superclass_name.tableize
+        end
+
+        def subclass_table_name
+          table_name
+        end
+
+        def superclass_foreign_key
+          superclass.to_s.foreign_key
+        end
+
+        def default_select_columns
+          ((superclass_columns_hash.keys - [primary_key]).collect do |key|
+            "#{superclass_table_name}.#{key}"
+          end + subclass_columns_hash.keys.collect do |key|
+            "#{subclass_table_name}.#{key}"
+          end).join(',')
+        end
+
         private
-          def superclass_table_name
-            superclass.to_s.tableize
-          end
-
-          def subclass_table_name
-            self.to_s.tableize
-          end
-
           def load_schema!
             @columns_hash = superclass_columns_hash.merge(subclass_columns_hash)
             @columns_hash.each do |name, column|
@@ -69,11 +86,11 @@ module ActiveRecord
           end
 
           def superclass_columns_hash
-            connection.schema_cache.columns_hash(superclass.to_s.tableize).except(*superclass_ignored_columns)
+            connection.schema_cache.columns_hash(superclass_table_name).except(*superclass_ignored_columns)
           end
 
           def subclass_columns_hash
-            connection.schema_cache.columns_hash(self.to_s.tableize).except(*subclass_ignored_columns)
+            connection.schema_cache.columns_hash(subclass_table_name).except(*subclass_ignored_columns)
           end
 
           def superclass_ignored_columns
@@ -81,7 +98,7 @@ module ActiveRecord
           end
 
           def subclass_ignored_columns
-            [superclass.to_s.foreign_key]
+            [superclass_foreign_key]
           end
       end #end of class_methods
 
@@ -90,12 +107,11 @@ module ActiveRecord
           attributes.slice(*self.class.superclass_for_write.column_names), &block
         )
         subclass_instance_for_write = self.class.subclass_for_write.new(
-          attributes.except(*self.class.superclass_for_write.column_names),
-          &block
+          attributes.except(*self.class.superclass_for_write.column_names), &block
         )
         ActiveRecord::Base.transaction do
           superclass_instance_for_write.save
-          subclass_instance_for_write.send("#{self.class.superclass.to_s.foreign_key}=", superclass_instance_for_write.id)
+          subclass_instance_for_write.send("#{self.class.superclass_name.foreign_key}=", superclass_instance_for_write.id)
           subclass_instance_for_write.save
         end
 
