@@ -115,6 +115,8 @@ module ActiveRecord
           subclass_instance_for_write.save
         end
 
+        self.id = subclass_instance_for_write.id
+
         superclass_instance_for_write.id.present? and subclass_instance_for_write.id.present?
       rescue ActiveRecord::RecordInvalid
         false
