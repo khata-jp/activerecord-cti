@@ -111,7 +111,7 @@ module ActiveRecord
         )
         ActiveRecord::Base.transaction do
           superclass_instance_for_write.save
-          subclass_instance_for_write.send("#{self.class.superclass_name.foreign_key}=", superclass_instance_for_write.id)
+          subclass_instance_for_write.send("#{self.class.superclass_foreign_key}=", superclass_instance_for_write.id)
           subclass_instance_for_write.save
         end
 
