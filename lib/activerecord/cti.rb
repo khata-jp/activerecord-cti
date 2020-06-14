@@ -65,9 +65,9 @@ module ActiveRecord
         end
 
         def default_select_columns
-          ((superclass_columns_hash.keys - [primary_key]).collect do |key|
+          ((superclass_column_names - [primary_key]).collect do |key|
             "#{superclass_table_name}.#{key}"
-          end + subclass_columns_hash.keys.collect do |key|
+          end + subclass_column_names.collect do |key|
             "#{subclass_table_name}.#{key}"
           end).join(',')
         end
@@ -89,8 +89,16 @@ module ActiveRecord
             connection.schema_cache.columns_hash(superclass_table_name).except(*superclass_ignored_columns)
           end
 
+          def superclass_column_names
+            superclass_columns_hash.keys
+          end
+
           def subclass_columns_hash
             connection.schema_cache.columns_hash(subclass_table_name).except(*subclass_ignored_columns)
+          end
+
+          def subclass_column_names
+            subclass_columns_hash.keys
           end
 
           def superclass_ignored_columns
