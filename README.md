@@ -12,7 +12,7 @@ For Example, Suppose you want to describe the following class structure on datab
 
 But STI has a disadvantage that it is not possible to represent one record as an object of two different models at the same time.
 
-#### persons talbe (STI
+#### persons talbe (STI)
 | id | type | name      | birth_year | position_name   | licence_name |
 |----|------|-----------|------------|-----------------|---------------|
 | 1  |Player| Ryan Giggs|  30        | midfielder      |               |
