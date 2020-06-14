@@ -13,7 +13,7 @@ module ActiveRecord
         def inherited(subclass)
           super
           subclass.include(ActiveRecord::Cti::SubClass)
-          subclass.send(:default_scope, lambda{ joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{superclass_foreign_key} = #{superclass_table_name}.id").select(default_select_columns) })
+          subclass.send(:default_scope, lambda{ joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{superclass_foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) })
         end
       end
     end
@@ -46,7 +46,7 @@ module ActiveRecord
           table_name
         end
 
-        def superclass_foreign_key
+        def superclass_foreign_key_name
           superclass.to_s.foreign_key
         end
 
@@ -99,41 +99,66 @@ module ActiveRecord
           end
 
           def subclass_ignored_columns
-            [superclass_foreign_key]
+            [superclass_foreign_key_name]
           end
       end #end of class_methods
 
       def save(*args, &block)
-        superclass_instance_for_write = superclass_for_write.new(
-          attributes.slice(*superclass_for_write.column_names), &block
-        )
-        subclass_instance_for_write = subclass_for_write.new(
-          attributes.except(*superclass_for_write.column_names), &block
-        )
+        _superclass_instance_for_rw = superclass_instance_for_rw
+        _subclass_instance_for_rw = subclass_instance_for_rw
         ActiveRecord::Base.transaction do
-          superclass_instance_for_write.save
-          subclass_instance_for_write.send("#{self.class.superclass_foreign_key}=", superclass_instance_for_write.id)
-          subclass_instance_for_write.save
+          _superclass_instance_for_rw.send(:create_or_update)
+          _subclass_instance_for_rw.send("#{superclass_foreign_key_name}=", _superclass_instance_for_rw.id)
+          _subclass_instance_for_rw.send(:create_or_update)
         end
-
-        self.id = subclass_instance_for_write.id
-
-        superclass_instance_for_write.id.present? and subclass_instance_for_write.id.present?
+        self.id = _subclass_instance_for_rw.id
+        _superclass_instance_for_rw.id.present? and _subclass_instance_for_rw.id.present?
       rescue ActiveRecord::RecordInvalid
         false
       end
 
       private
-        def superclass_for_write
+        def superclass_instance_for_rw(*args, &block)
+          superclass_foreign_key_value.present?
+          superclass_instance_for_rw = if superclass_foreign_key_value.present?
+            superclass_instance_for_rw = superclass_for_rw.find(superclass_foreign_key_value)
+            superclass_instance_for_rw.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
+            superclass_instance_for_rw
+          else
+            superclass_for_rw.new(attributes.slice(*superclass_for_rw.column_names), &block)
+          end
+        end
+
+        def subclass_instance_for_rw(*args, &block)
+          subclass_instance_for_rw = if self.id.present?
+            subclass_instance_for_rw = subclass_for_rw.find(self.id)
+            subclass_instance_for_rw.attributes = attributes.except(*superclass_for_rw.column_names)
+            subclass_instance_for_rw
+          else
+            subclass_for_rw.new(attributes.except(*superclass_for_rw.column_names), &block)
+          end
+        end
+
+        def superclass_foreign_key_name
+          self.class.superclass_foreign_key_name
+        end
+
+        def superclass_foreign_key_value
+          return @superclass_foreign_key if @superclass_foreign_key.present?
+          return nil if self.id.nil?
+          @superclass_foreign_key = subclass_for_rw.find(self.id)&.send(superclass_foreign_key_name)
+        end
+
+        def superclass_for_rw
           table_name = self.class.superclass_table_name
-          @superclass_for_write || @superclass_for_write = Class.new(ActiveRecord::Base) do
+          @superclass_for_rw || @superclass_for_rw = Class.new(ActiveRecord::Base) do
             self.table_name = table_name
           end
         end
 
-        def subclass_for_write
+        def subclass_for_rw
           table_name = self.class.subclass_table_name
-          @subclass_for_write || @subclass_for_write = Class.new(ActiveRecord::Base) do
+          @subclass_for_rw || @subclass_for_rw = Class.new(ActiveRecord::Base) do
             self.table_name = table_name
           end
         end
