@@ -1,6 +1,6 @@
 # ActiveRecord::Cti
 ActiveRecord-Cti is a library implemented [Class Table Inheritance](https://martinfowler.com/eaaCatalog/classTableInheritance.html) on ActiveRecord.
-Class Table Inheritance (CTI) is useful under the circumstances that a ActiveRecord object is in multiple positions or has multiple roles, and you want to describe it's structure on the database. 
+Class Table Inheritance (CTI) is useful under the circumstances that an ActiveRecord object is in multiple positions or has multiple roles, and you want to describe it's structure on the database. 
 For Example, one person may be a player and a coach in a soccer team.
 
 ## Why use activerecord-cti ?
