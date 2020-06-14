@@ -1,4 +1,4 @@
-# Activerecord::Cti
+# ActiveRecord::Cti
 ActiveRecord-Cti is a library implemented Class Table Inheritance on ActiveRecord.
 Class Table Inheritance (CTI) is useful under the circumstances that a ActiveRecord object is in multiple positions or has multiple roles, and you want to describe it's structure on the database. 
 For Example, one person may be a player and a coach in a soccer team.
@@ -12,10 +12,11 @@ For Example, Suppose you want to describe the following class structure on datab
 
 But STI has a disadvantage that it is not possible to represent one record as an object of two different models at the same time.
 
+#### persons talbe (STI
 | id | type | name      | birth_year | position_name   | licence_name |
 |----|------|-----------|------------|-----------------|---------------|
 | 1  |Player| Ryan Giggs|  30        | midfielder      |               |
-| 1  |Coach | Ryan Giggs|  30        |                 | UEFA Pro      |
+| 2  |Coach | Ryan Giggs|  30        |                 | UEFA Pro      |
 
 As mentiond above, for expressing two Person's subclasses objects, which are Player and Coach, you have to insert two records into persons table in STI.
 It is cursed that the contents of name and birth_year columns are duplicated and position_name and licence_name columns are sparse.
