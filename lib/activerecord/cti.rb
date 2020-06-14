@@ -22,20 +22,6 @@ module ActiveRecord
       extend ActiveSupport::Concern
 
       class_methods do
-        def superclass_for_write
-          table_name = superclass_table_name
-          @superclass_for_write || @superclass_for_write = Class.new(ActiveRecord::Base) do
-            self.table_name = table_name
-          end
-        end
-
-        def subclass_for_write
-          table_name = subclass_table_name
-          @subclass_for_write || @subclass_for_write = Class.new(ActiveRecord::Base) do
-            self.table_name = table_name
-          end
-        end
-
         # Generates all the attribute related methods for columns in the database
         # accessors, mutators and query methods.
         def define_attribute_methods # :nodoc:
@@ -118,11 +104,11 @@ module ActiveRecord
       end #end of class_methods
 
       def save(*args, &block)
-        superclass_instance_for_write = self.class.superclass_for_write.new(
-          attributes.slice(*self.class.superclass_for_write.column_names), &block
+        superclass_instance_for_write = superclass_for_write.new(
+          attributes.slice(*superclass_for_write.column_names), &block
         )
-        subclass_instance_for_write = self.class.subclass_for_write.new(
-          attributes.except(*self.class.superclass_for_write.column_names), &block
+        subclass_instance_for_write = subclass_for_write.new(
+          attributes.except(*superclass_for_write.column_names), &block
         )
         ActiveRecord::Base.transaction do
           superclass_instance_for_write.save
@@ -136,6 +122,21 @@ module ActiveRecord
       rescue ActiveRecord::RecordInvalid
         false
       end
+
+      private
+        def superclass_for_write
+          table_name = self.class.superclass_table_name
+          @superclass_for_write || @superclass_for_write = Class.new(ActiveRecord::Base) do
+            self.table_name = table_name
+          end
+        end
+
+        def subclass_for_write
+          table_name = self.class.subclass_table_name
+          @subclass_for_write || @subclass_for_write = Class.new(ActiveRecord::Base) do
+            self.table_name = table_name
+          end
+        end
     end
   end
 end
