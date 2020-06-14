@@ -72,6 +72,13 @@ module ActiveRecord
           end).join(',')
         end
 
+        def find_by(*args)
+          unless subclass_column_names.include?(args.first.keys.first)
+            args = [{"#{superclass_table_name}.#{args.first.keys.first.to_s}": args.first.values.first}]
+          end
+          super
+        end
+
         private
           def load_schema!
             @columns_hash = superclass_columns_hash.merge(subclass_columns_hash)
