@@ -142,8 +142,7 @@ module ActiveRecord
 
       private
         def superclass_instance_for_rw(*args, &block)
-          superclass_foreign_key_value.present?
-          superclass_instance_for_rw = if superclass_foreign_key_value.present?
+          if superclass_foreign_key_value.present?
             superclass_instance_for_rw = superclass_for_rw.find(superclass_foreign_key_value)
             superclass_instance_for_rw.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
             superclass_instance_for_rw
@@ -153,7 +152,7 @@ module ActiveRecord
         end
 
         def subclass_instance_for_rw(*args, &block)
-          subclass_instance_for_rw = if self.id.present?
+          if self.id.present?
             subclass_instance_for_rw = subclass_for_rw.find(self.id)
             subclass_instance_for_rw.attributes = attributes.except(*superclass_for_rw.column_names)
             subclass_instance_for_rw
