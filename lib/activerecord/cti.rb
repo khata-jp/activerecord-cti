@@ -77,6 +77,13 @@ module ActiveRecord
           super
         end
 
+        def where(opts = :chain, *rest)
+          unless subclass_column_names.include?(opts.keys.first)
+            opts = {"#{superclass_table_name}.#{opts.keys.first.to_s}": opts.values.first}
+          end
+          super
+        end
+
         private
           def load_schema!
             @columns_hash = superclass_columns_hash.merge(subclass_columns_hash)
