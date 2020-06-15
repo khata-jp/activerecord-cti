@@ -26,7 +26,7 @@ CTI can solve these problems by using multiple related tables like shown below, 
 ![ER Diagram](public/images/er_diagram.png)
 
 ## How to use
-### Configuration
+### Preparation
 First of all, generate the files of models you want to apply CTI to, and execute migration.
 
 ```bash
