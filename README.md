@@ -15,8 +15,8 @@ But STI has a disadvantage that it is not possible to represent one record as an
 #### persons talbe (STI)
 | id | type | name      | birth_year | position_name   | licence_name |
 |----|------|-----------|------------|-----------------|---------------|
-| 1  |Player| Ryan Giggs|  30        | midfielder      |               |
-| 2  |Coach | Ryan Giggs|  30        |                 | UEFA Pro      |
+| 1  |Player| Ryan Giggs|  1973      | midfielder      |               |
+| 2  |Coach | Ryan Giggs|  1973      |                 | UEFA Pro      |
 
 As mentiond above, for expressing two Person's subclasses objects, which are Player and Coach, you have to insert two records into persons table in STI.
 It is cursed that the contents of name and birth_year columns are duplicated and position_name and licence_name columns are sparse.
