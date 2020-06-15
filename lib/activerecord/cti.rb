@@ -23,12 +23,16 @@ module ActiveRecord
       included do
         default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{superclass_foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
 
-        Pathname.glob("#{Rails.root}/app/models/*").collect do |path| path.basename.to_s.split('.').first.classify.safe_constantize end.compact.delete_if do |model| !model.superclass.include?(ActiveRecord::Cti::BaseClass) or model == self end.each do |model|
+        Pathname.glob("#{Rails.root}/app/models/*").collect do
+          |path| path.basename.to_s.split('.').first.classify.safe_constantize
+        end.compact.delete_if do |model|
+          !model.superclass.include?(ActiveRecord::Cti::BaseClass) or model == self
+        end.each do |model|
           define_method("to_#{model.to_s.underscore}") do |args = {}|
             model_instance = model.new(args)
-          model_instance.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
-          model_instance.send(:superclass_foreign_key_value=, superclass_foreign_key_value)
-          model_instance
+            model_instance.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
+            model_instance.send(:superclass_foreign_key_value=, superclass_foreign_key_value)
+            model_instance
           end
         end
       end
