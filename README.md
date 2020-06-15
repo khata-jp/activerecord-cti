@@ -40,7 +40,7 @@ Next, add the following line into Person model, which is base class.
 
 ```ruby
 class Person < ApplicationRecord
-  include ActiveRecord::Cti::BaseClass #add
+  include ActiveRecord::Cti::BaseClass #added
 end
 ```
 By this mix-in, Person model is configured as base class in CTI, and automatically becomes abstract class as well.
