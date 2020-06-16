@@ -18,8 +18,8 @@ But STI has a disadvantage that it is not possible to represent one record as an
 | 1  |Player| Ryan Giggs|  1973      | midfielder      |               |
 | 2  |Coach | Ryan Giggs|  1973      |                 | UEFA Pro      |
 
-As mentiond above, for expressing two Person's subclasses objects, which are Player and Coach, you have to insert two records into persons table in STI.
-It is cursed that the contents of name and birth_year columns are duplicated and position_name and licence_name columns are sparse.
+As mentiond above, for expressing two `Person`'s subclasses objects, which are `Player` and `Coach`, you have to insert two records into persons table in STI.
+It is cursed that the contents of `name` and `birth_year` columns are duplicated and `position_name` and `licence_name` columns are sparse.
 
 CTI can solve these problems by using multiple related tables like shown below, literally for class table inheritance.
 
@@ -36,14 +36,14 @@ $ rails g model Coach person_id:Integer licence_name:String
 $ rake db:migrate
 ```
 
-Next, add the following line into Person model, which is base class.
+Next, add the following line into `Person` model, which is base class.
 
 ```ruby
 class Person < ApplicationRecord
   include ActiveRecord::Cti::BaseClass #added
 end
 ```
-By this mix-in, Person model is configured as base class in CTI, and automatically becomes abstract class as well.
+By this mix-in, `Person` model is configured as base class in CTI, and automatically becomes abstract class as well.
 
 And then, rewrite files of subclass models for inheriting base class.
 
