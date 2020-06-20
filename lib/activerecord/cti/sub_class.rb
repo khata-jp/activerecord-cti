@@ -6,6 +6,7 @@ module ActiveRecord
       included do
         default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
 
+        # Define dinamically to_* methods, which convert self to other subclass has same CTI superclass.
         Pathname.glob("#{Rails.root}/app/models/*").collect do
           |path| path.basename.to_s.split('.').first.classify.safe_constantize
         end.compact.delete_if do |model|
@@ -25,8 +26,6 @@ module ActiveRecord
         # accessors, mutators and query methods.
         def define_attribute_methods # :nodoc:
           return false if @attribute_methods_generated
-          # Use a mutex; we don't want two threads simultaneously trying to define
-          # attribute methods.
           generated_attribute_methods.synchronize do
             return false if @attribute_methods_generated
             @attribute_methods_generated = true
@@ -49,6 +48,7 @@ module ActiveRecord
           superclass.to_s.foreign_key
         end
 
+        # Get columns to pass +joins+ while calling +default_scope+.
         def default_select_columns
           ((superclass_column_names - [primary_key]).collect do |key|
             "#{superclass_table_name}.#{key}"
@@ -109,6 +109,7 @@ module ActiveRecord
           end
       end #end of class_methods
 
+      # To save into two related tables while inserting.
       def save(*args, &block)
         _superclass_instance_for_rw = superclass_instance_for_rw
         _subclass_instance_for_rw = subclass_instance_for_rw
