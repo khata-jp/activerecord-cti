@@ -25,6 +25,17 @@ CTI can solve these problems by using multiple related tables like shown below, 
 
 ![ER Diagram](public/images/er_diagram.png)
 
+## Installation
+To install activerecord-cti on Rails, put this line in your Gemfile:
+```ruby
+gem 'activerecord-cti'
+```
+And then execute `bundle install`
+```bash
+$ bundle install
+```
+
+
 ## How to use
 ### Preparation
 First of all, generate the files of models you want to apply CTI to, and execute migration.
