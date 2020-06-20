@@ -30,9 +30,9 @@ CTI can solve these problems by using multiple related tables like shown below, 
 First of all, generate the files of models you want to apply CTI to, and execute migration.
 
 ```bash
-$ rails g model Person name:String birth_year:Integer
-$ rails g model Player person_id:Integer position_name:String 
-$ rails g model Coach person_id:Integer licence_name:String
+$ rails g model Person name:string birth_year:integer
+$ rails g model Player person_id:integer position_name:string 
+$ rails g model Coach person_id:integer licence_name:string
 $ rake db:migrate
 ```
 
