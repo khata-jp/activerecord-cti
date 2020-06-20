@@ -61,7 +61,11 @@ end
 To save data of Ryan Giggs as a football player, describe following:
 
 ```ruby
-player = Player.new(name: 'Ryan Giggs', birth_year: 1973, position_name: 'midfielder')
+player = Player.new(
+  name: 'Ryan Giggs',
+  birth_year: 1973,
+  position_name: 'midfielder'
+)
 player.save
 ```
 So that his data is automatically split into two related tables.
@@ -106,9 +110,6 @@ Coach.find_by_name('Ryan Giggs') #<Coach id: 1, name: "Ryan Giggs", licence_name
 ```
 
 Like this, pserson_id, which coaches table has as foreign_key reffered to base class object, is concealed.
-
-## Contributing
-Contribution directions go here.
 
 ## License
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
