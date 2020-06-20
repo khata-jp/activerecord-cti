@@ -4,7 +4,7 @@ module ActiveRecord
       extend ActiveSupport::Concern
 
       included do
-        default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{superclass_foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
+        default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
 
         Pathname.glob("#{Rails.root}/app/models/*").collect do
           |path| path.basename.to_s.split('.').first.classify.safe_constantize
@@ -14,7 +14,7 @@ module ActiveRecord
           define_method("to_#{model.to_s.underscore}") do |args = {}|
             model_instance = model.new(args)
             model_instance.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
-            model_instance.send(:superclass_foreign_key_value=, superclass_foreign_key_value)
+            model_instance.send(:foreign_key_value=, foreign_key_value)
             model_instance
           end
         end
@@ -45,7 +45,7 @@ module ActiveRecord
           table_name
         end
 
-        def superclass_foreign_key_name
+        def foreign_key_name
           superclass.to_s.foreign_key
         end
 
@@ -105,7 +105,7 @@ module ActiveRecord
           end
 
           def subclass_ignored_columns
-            [superclass_foreign_key_name]
+            [foreign_key_name]
           end
       end #end of class_methods
 
@@ -114,7 +114,7 @@ module ActiveRecord
         _subclass_instance_for_rw = subclass_instance_for_rw
         ActiveRecord::Base.transaction do
           _superclass_instance_for_rw.send(:create_or_update)
-          _subclass_instance_for_rw.send("#{superclass_foreign_key_name}=", _superclass_instance_for_rw.id)
+          _subclass_instance_for_rw.send("#{foreign_key_name}=", _superclass_instance_for_rw.id)
           _subclass_instance_for_rw.send(:create_or_update)
         end
         self.id = _subclass_instance_for_rw.id
@@ -125,8 +125,8 @@ module ActiveRecord
 
       private
         def superclass_instance_for_rw(*args, &block)
-          if superclass_foreign_key_value.present?
-            superclass_instance_for_rw = superclass_for_rw.find(superclass_foreign_key_value)
+          if foreign_key_value.present?
+            superclass_instance_for_rw = superclass_for_rw.find(foreign_key_value)
             superclass_instance_for_rw.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
             superclass_instance_for_rw
           else
@@ -144,18 +144,18 @@ module ActiveRecord
           end
         end
 
-        def superclass_foreign_key_name
-          self.class.superclass_foreign_key_name
+        def foreign_key_name
+          self.class.foreign_key_name
         end
 
-        def superclass_foreign_key_value
-          return @superclass_foreign_key_value if @superclass_foreign_key_value.present?
+        def foreign_key_value
+          return @foreign_key_value if @foreign_key_value.present?
           return nil if self.id.nil?
-          @superclass_foreign_key = subclass_for_rw.find(self.id)&.send(superclass_foreign_key_name)
+          @foreign_key = subclass_for_rw.find(self.id)&.send(foreign_key_name)
         end
 
-        def superclass_foreign_key_value=(value)
-          @superclass_foreign_key_value = value
+        def foreign_key_value=(value)
+          @foreign_key_value = value
         end
 
         def superclass_for_rw
