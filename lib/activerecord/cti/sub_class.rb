@@ -58,14 +58,14 @@ module ActiveRecord
         end
 
         def find_by(*args)
-          unless subclass_column_names.include?(args.first.keys.first)
+          unless subclass_column_names.include?(args.first.keys.first.to_s)
             args = [{"#{superclass_table_name}.#{args.first.keys.first.to_s}": args.first.values.first}]
           end
           super
         end
 
         def where(opts = :chain, *rest)
-          unless subclass_column_names.include?(opts.keys.first)
+          unless subclass_column_names.include?(opts.keys.first.to_s)
             opts = {"#{superclass_table_name}.#{opts.keys.first.to_s}": opts.values.first}
           end
           super
