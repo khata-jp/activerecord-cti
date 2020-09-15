@@ -13,13 +13,13 @@ For Example, Suppose you want to describe the following class structure on datab
 But STI has a disadvantage that it is not possible to represent one record as an object of two different models at the same time.
 
 #### people talbe (STI)
-| id | type | name      | birth_year | position_name   | licence_name |
+| id | type | name      | birth_year | position_name   | license_name |
 |----|------|-----------|------------|-----------------|---------------|
 | 1  |Player| Ryan Giggs|  1973      | midfielder      |               |
 | 2  |Coach | Ryan Giggs|  1973      |                 | UEFA Pro      |
 
 As mentiond above, for expressing two `Person`'s subclasses objects, which are `Player` and `Coach`, you have to insert two records into people table in STI.
-It is cursed that the contents of `name` and `birth_year` columns are duplicated and `position_name` and `licence_name` columns are sparse.
+It is cursed that the contents of `name` and `birth_year` columns are duplicated and `position_name` and `license_name` columns are sparse.
 
 CTI can solve these problems by using multiple related tables like shown below, literally for class table inheritance.
 
