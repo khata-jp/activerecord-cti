@@ -7,7 +7,8 @@ module ActiveRecord
         default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
 
         # Define dinamically to_* methods, which convert self to other subclass has same CTI superclass.
-        Pathname.glob("#{Rails.root}/app/models/*").collect do
+        models_dir_path = defined?(Rails) ? "#{Rails.root}/app/models" : ENV['APP_MODELS_DIR_PATH']
+        Pathname.glob("#{models_dir_path}/*").collect do
           |path| path.basename.to_s.split('.').first.classify.safe_constantize
         end.compact.delete_if do |model|
           !model.superclass.include?(ActiveRecord::Cti::BaseClass) or model == self
