@@ -65,9 +65,11 @@ module ActiveRecord
           super
         end
 
-        def where(opts = :chain, *rest)
-          unless subclass_column_names.include?(opts.keys.first.to_s)
-            opts = {"#{superclass_table_name}.#{opts.keys.first.to_s}": opts.values.first}
+        def where(*args)
+          if args.first.is_a?(Hash)
+            unless subclass_column_names.include?(args.first.keys.first.to_s)
+              *args = {"#{superclass_table_name}.#{args.first.keys.first.to_s}": args.first.values.first}
+            end
           end
           super
         end
