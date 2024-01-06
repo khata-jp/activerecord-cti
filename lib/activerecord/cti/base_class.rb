@@ -5,10 +5,6 @@ module ActiveRecord
     module BaseClass
       extend ActiveSupport::Concern
 
-      included do
-        self.abstract_class = true
-      end
-
       class_methods do
         def inherited(subclass)
           super

@@ -4,7 +4,12 @@ module ActiveRecord
       extend ActiveSupport::Concern
 
       included do
-        default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
+        self.table_name = subclass_table_name
+puts "#{subclass_table_name}.#{foreign_key_name} = #{superclass_table_name}.id"
+        default_scope {
+          from("#{subclass_table_name},#{superclass_table_name}")
+          .where("#{subclass_table_name}.#{foreign_key_name} = #{superclass_table_name}.id")
+          .select(default_select_columns) }
 
         # Define dinamically to_* methods, which convert self to other subclass has same CTI superclass.
         models_dir_path = defined?(Rails) ? "#{Rails.root}/app/models" : ENV['APP_MODELS_DIR_PATH']
@@ -42,7 +47,7 @@ module ActiveRecord
         end
 
         def subclass_table_name
-          table_name
+          to_s.tableize
         end
 
         def foreign_key_name
