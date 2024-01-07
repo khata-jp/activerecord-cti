@@ -5,10 +5,11 @@ module ActiveRecord
 
       included do
         self.table_name = subclass_table_name
+        belongs_to superclass_table_name.singularize.to_sym
         default_scope {
-          from("#{subclass_table_name},#{superclass_table_name}")
-          .where("#{subclass_table_name}.#{foreign_key_name} = #{superclass_table_name}.id")
-          .select(default_select_columns) }
+	  joins(superclass_table_name.singularize.to_sym)
+          .select(default_select_columns)
+        }
 
         # Define dinamically to_* methods, which convert self to other subclass has same CTI superclass.
         models_dir_path = defined?(Rails) ? "#{Rails.root}/app/models" : ENV['APP_MODELS_DIR_PATH']
