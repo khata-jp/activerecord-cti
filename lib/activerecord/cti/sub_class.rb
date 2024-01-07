@@ -71,9 +71,13 @@ module ActiveRecord
 
         def where(*args)
           if args.first.is_a?(Hash)
-            unless subclass_column_names.include?(args.first.keys.first.to_s)
-              *args = {"#{superclass_table_name}.#{args.first.keys.first.to_s}": args.first.values.first}
+            hash = {}
+            args.first.each do |key, value|
+              unless subclass_column_names.include?(key)
+                hash["#{superclass_table_name}.#{key}".to_sym] = value
+              end
             end
+            *args = hash
           end
           super
         end
