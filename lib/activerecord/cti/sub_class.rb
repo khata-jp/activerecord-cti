@@ -15,7 +15,7 @@ module ActiveRecord
         Pathname.glob("#{models_dir_path}/*").collect do
           |path| path.basename.to_s.split('.').first.classify.safe_constantize
         end.compact.delete_if do |model|
-          !model.superclass.include?(ActiveRecord::Cti::BaseClass) or model == self
+          model.superclass != self.superclass
         end.each do |model|
           define_method("to_#{model.to_s.underscore}") do |args = {}|
             model_instance = model.new(args)
