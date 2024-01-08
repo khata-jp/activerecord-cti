@@ -64,8 +64,13 @@ module ActiveRecord
         end
 
         def find_by(*args)
-          unless subclass_column_names.include?(args.first.keys.first.to_s)
-            args = [{"#{superclass_table_name}.#{args.first.keys.first.to_s}": args.first.values.first}]
+          if args.first.is_a?(Hash)
+            hash = {}
+            args.first.each do |key, value|
+              table_name = subclass_column_names.include?(key.to_s) ? subclass_table_name : superclass_table_name
+              hash["#{table_name}.#{key}".to_sym] = value
+            end
+            *args = hash
           end
           super
         end
@@ -74,9 +79,8 @@ module ActiveRecord
           if args.first.is_a?(Hash)
             hash = {}
             args.first.each do |key, value|
-              unless subclass_column_names.include?(key)
-                hash["#{superclass_table_name}.#{key}".to_sym] = value
-              end
+              table_name = subclass_column_names.include?(key.to_s) ? subclass_table_name : superclass_table_name
+              hash["#{table_name}.#{key}".to_sym] = value
             end
             *args = hash
           end
