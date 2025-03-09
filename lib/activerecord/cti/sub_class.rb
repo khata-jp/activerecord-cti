@@ -4,18 +4,23 @@ module ActiveRecord
       extend ActiveSupport::Concern
 
       included do
-        default_scope { joins("INNER JOIN #{superclass_table_name} ON #{table_name}.#{foreign_key_name} = #{superclass_table_name}.id").select(default_select_columns) }
+        self.table_name = subclass_table_name
+        belongs_to superclass_table_name.singularize.to_sym
+        default_scope {
+	  joins(superclass_table_name.singularize.to_sym)
+          .select(default_select_columns)
+        }
 
         # Define dinamically to_* methods, which convert self to other subclass has same CTI superclass.
         models_dir_path = defined?(Rails) ? "#{Rails.root}/app/models" : ENV['APP_MODELS_DIR_PATH']
         Pathname.glob("#{models_dir_path}/*").collect do
           |path| path.basename.to_s.split('.').first.classify.safe_constantize
         end.compact.delete_if do |model|
-          !model.superclass.include?(ActiveRecord::Cti::BaseClass) or model == self
+          model.superclass != self.superclass
         end.each do |model|
           define_method("to_#{model.to_s.underscore}") do |args = {}|
             model_instance = model.new(args)
-            model_instance.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
+            model_instance.attributes = attributes.slice(*super_table_model.column_names - [@primary_key])
             model_instance.send(:foreign_key_value=, foreign_key_value)
             model_instance
           end
@@ -42,7 +47,7 @@ module ActiveRecord
         end
 
         def subclass_table_name
-          table_name
+          to_s.tableize
         end
 
         def foreign_key_name
@@ -59,15 +64,25 @@ module ActiveRecord
         end
 
         def find_by(*args)
-          unless subclass_column_names.include?(args.first.keys.first.to_s)
-            args = [{"#{superclass_table_name}.#{args.first.keys.first.to_s}": args.first.values.first}]
+          if args.first.is_a?(Hash)
+            hash = {}
+            args.first.each do |key, value|
+              table_name = subclass_column_names.include?(key.to_s) ? subclass_table_name : superclass_table_name
+              hash["#{table_name}.#{key}".to_sym] = value
+            end
+            *args = hash
           end
           super
         end
 
-        def where(opts = :chain, *rest)
-          unless subclass_column_names.include?(opts.keys.first.to_s)
-            opts = {"#{superclass_table_name}.#{opts.keys.first.to_s}": opts.values.first}
+        def where(*args)
+          if args.first.is_a?(Hash)
+            hash = {}
+            args.first.each do |key, value|
+              table_name = subclass_column_names.include?(key.to_s) ? subclass_table_name : superclass_table_name
+              hash["#{table_name}.#{key}".to_sym] = value
+            end
+            *args = hash
           end
           super
         end
@@ -112,37 +127,37 @@ module ActiveRecord
 
       # To save into two related tables while inserting.
       def save(*args, &block)
-        _superclass_instance_for_rw = superclass_instance_for_rw
-        _subclass_instance_for_rw = subclass_instance_for_rw
+        _super_table_model_instance = super_table_model_instance
+        _sub_table_model_instance = sub_table_model_instance
         ActiveRecord::Base.transaction do
-          _superclass_instance_for_rw.send(:create_or_update)
-          _subclass_instance_for_rw.send("#{foreign_key_name}=", _superclass_instance_for_rw.id)
-          _subclass_instance_for_rw.send(:create_or_update)
+          _super_table_model_instance.send(:create_or_update)
+          _sub_table_model_instance.send("#{foreign_key_name}=", _super_table_model_instance.id)
+          _sub_table_model_instance.send(:create_or_update)
         end
-        self.id = _subclass_instance_for_rw.id
-        _superclass_instance_for_rw.id.present? and _subclass_instance_for_rw.id.present?
+        self.id = _sub_table_model_instance.id
+        _super_table_model_instance.id.present? and _sub_table_model_instance.id.present?
       rescue ActiveRecord::RecordInvalid
         false
       end
 
       private
-        def superclass_instance_for_rw(*args, &block)
+        def super_table_model_instance(*args, &block)
           if foreign_key_value.present?
-            superclass_instance_for_rw = superclass_for_rw.find(foreign_key_value)
-            superclass_instance_for_rw.attributes = attributes.slice(*superclass_for_rw.column_names - [@primary_key])
-            superclass_instance_for_rw
+            super_table_model_instance = super_table_model.find(foreign_key_value)
+            super_table_model_instance.attributes = attributes.slice(*super_table_model.column_names - [@primary_key])
+            super_table_model_instance
           else
-            superclass_for_rw.new(attributes.slice(*superclass_for_rw.column_names), &block)
+            super_table_model.new(attributes.slice(*super_table_model.column_names), &block)
           end
         end
 
-        def subclass_instance_for_rw(*args, &block)
+        def sub_table_model_instance(*args, &block)
           if self.id.present?
-            subclass_instance_for_rw = subclass_for_rw.find(self.id)
-            subclass_instance_for_rw.attributes = attributes.except(*superclass_for_rw.column_names)
-            subclass_instance_for_rw
+            sub_table_model_instance = sub_table_model.find(self.id)
+            sub_table_model_instance.attributes = attributes.except(*super_table_model.column_names)
+            sub_table_model_instance
           else
-            subclass_for_rw.new(attributes.except(*superclass_for_rw.column_names), &block)
+            sub_table_model.new(attributes.except(*super_table_model.column_names), &block)
           end
         end
 
@@ -153,23 +168,23 @@ module ActiveRecord
         def foreign_key_value
           return @foreign_key_value if @foreign_key_value.present?
           return nil if self.id.nil?
-          @foreign_key = subclass_for_rw.find(self.id)&.send(foreign_key_name)
+          @foreign_key = sub_table_model.find(self.id)&.send(foreign_key_name)
         end
 
         def foreign_key_value=(value)
           @foreign_key_value = value
         end
 
-        def superclass_for_rw
+        def super_table_model
           table_name = self.class.superclass_table_name
-          @superclass_for_rw || @superclass_for_rw = Class.new(ActiveRecord::Base) do
+          @super_table_model || @super_table_model = Class.new(ActiveRecord::Base) do
             self.table_name = table_name
           end
         end
 
-        def subclass_for_rw
+        def sub_table_model
           table_name = self.class.subclass_table_name
-          @subclass_for_rw || @subclass_for_rw = Class.new(ActiveRecord::Base) do
+          @sub_table_model || @sub_table_model = Class.new(ActiveRecord::Base) do
             self.table_name = table_name
           end
         end
